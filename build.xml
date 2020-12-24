@@ -26,12 +26,15 @@
   <property name="docs.dir" value="${build.dir}/javadocs"/>
   <property name="fop-0.20.5.ext.dir" value="${src.dir}/fop-0.20.5"/>
   <property name="fop-trunk.ext.dir" value="${src.dir}/fop-trunk"/>
+  <property name="fop-2.5.ext.dir" value="${src.dir}/fop-2.5"/>
   <property name="xgc.ext.dir" value="${src.dir}/xmlgraphics-commons"/>
   <property name="src.fop-0.20.5.dir" value="${fop-0.20.5.ext.dir}/java"/>
   <property name="src.fop-trunk.dir" value="${fop-trunk.ext.dir}/java"/>
+  <property name="src.fop-2.5.dir" value="${fop-2.5.ext.dir}/java"/>
   <property name="src.xgc.dir" value="${xgc.ext.dir}/java"/>
   <property name="build.dest.fop-0.20.5" value="${build.dir}/fop-0.20.5/classes"/>
   <property name="build.dest.fop-trunk" value="${build.dir}/fop-trunk/classes"/>
+  <property name="build.dest.fop-2.5" value="${build.dir}/fop-2.5/classes"/>
   <property name="build.dest.xgc" value="${build.dir}/xgc/classes"/>
   <property name="build.dotnet.dir" value="${build.dir}/dotnet"/>
   <property name="xalan.dir" value="${src.dir}/xalan"/>
@@ -121,6 +124,7 @@
     <available property="jdom.present" classname="org.jdom.Document" classpathref="project.classpath"/>
     <property name="init.fop-0.20.5" value="true"/>
     <property name="init.fop-trunk" value="true"/>
+    <property name="init.fop-2.5" value="true"/>
 
     <condition property="IKVM.present">
       <and>
@@ -150,6 +154,15 @@
   <target name="init.fop-trunk" depends="init" if="init.fop-trunk">
     <echo message="Home directory for Apache FOP Trunk is set. Will try to compile FOP extension."/>
     <path id="fop-trunk.classpath">
+      <path refid="project.classpath"/>
+      <fileset dir="${lib.dir}/fop">
+        <include name="*.jar"/>
+      </fileset>
+    </path>
+  </target>
+  <target name="init.fop-2.5" depends="init" if="init.fop-2.5">
+    <echo message="Home directory for Apache FOP 2.5 is set. Will try to compile FOP extension."/>
+    <path id="fop-2.5.classpath">
       <path refid="project.classpath"/>
       <fileset dir="${lib.dir}/fop">
         <include name="*.jar"/>
@@ -202,7 +215,7 @@
   <!-- =================================================================== -->
   <!-- Prepares the build directory                                        -->
   <!-- =================================================================== -->
-  <target name="prepare" depends="init, info.jdk14, init.fop-0.20.5, init.fop-trunk, init.xgc, info.xalan, info.saxon6, info.saxon8, info.jdom, info.ikvm">
+  <target name="prepare" depends="init, info.jdk14, init.fop-0.20.5, init.fop-trunk, init.fop-2.5, init.xgc, info.xalan, info.saxon6, info.saxon8, info.jdom, info.ikvm">
     <!-- create directories -->
     <echo message="Preparing the build directories"/>
     <mkdir dir="${build.dir}"/>
@@ -268,6 +281,16 @@
       </classpath>
     </javac>
   </target>
+  <target name="compile-fop-2.5" depends="compile">
+    <echo message="Compiling the Apache FOP Trunk extension"/>
+    <mkdir dir="${build.dest.fop-2.5}"/>
+    <javac srcdir="${src.fop-2.5.dir}" destdir="${build.dest.fop-2.5}">
+      <classpath>
+        <path refid="fop-2.5.classpath"/>
+        <pathelement location="${build.dest}"/>
+      </classpath>
+    </javac>
+  </target>
   <target name="compile-xgc" depends="compile">
     <echo message="Compiling the image loader extension for Apache XML Graphics Commons"/>
     <mkdir dir="${build.dest.xgc}"/>
@@ -278,7 +301,7 @@
       </classpath>
     </javac>
   </target>
-  <target name="compile-all" depends="compile, compile-xalan, compile-saxon6, compile-saxon8, compile-jdom, compile-fop-0.20.5, compile-fop-trunk, compile-xgc" description="Compiles the sources"/>
+  <target name="compile-all" depends="compile, compile-xalan, compile-saxon6, compile-saxon8, compile-jdom, compile-fop-0.20.5, compile-fop-trunk, compile-fop-2.5, compile-xgc" description="Compiles the sources"/>
   <!-- =================================================================== -->
   <!-- Creates Java docs                                                   -->
   <!-- =================================================================== -->
@@ -292,6 +315,7 @@
           stylesheetfile="${src.dir}/documentation/resources/stylesheets/javadoc.css">
       <classpath refid="project.classpath"/>
       <classpath refid="fop-trunk.classpath"/>
+      <classpath refid="fop-2.5.classpath"/>
       <packageset dir="${src.java.dir}" defaultexcludes="yes"/>
       <packageset dir="${xalan.dir}/java" defaultexcludes="yes"/>
       <packageset dir="${saxon6.dir}/java" defaultexcludes="yes"/>
@@ -486,6 +510,71 @@
       </metainf>
     </jar>
   </target>
+
+  <target name="package-fop-2.5" depends="compile-all">
+    <echo message="Creating the jar file ${build.dir}/${name}-fop-2.5-ext.jar"/>
+    <jar jarfile="${build.dir}/${name}-fop-2.5-ext.jar">
+      <manifest>
+        <attribute name="Implementation-Title" value="${Name}"/>
+        <attribute name="Implementation-Version" value="${version}"/>
+        <attribute name="Implementation-Vendor" value="${impl.vendor}"/>
+        <attribute name="Implementation-URL" value="${impl.url}"/>
+        <attribute name="Build-Id" value="${ts} (${user.name} [${os.name} ${os.version} ${os.arch}, Java ${java.runtime.version}])"/>
+      </manifest>
+      <metainf dir="${basedir}" includes="LICENSE,NOTICE"/>
+      <metainf dir="${fop-2.5.ext.dir}/resources">
+        <include name="**"/>
+      </metainf>
+      <metainf dir="${xgc.ext.dir}/resources">
+        <include name="**"/>
+      </metainf>
+      <fileset dir="${build.dest.fop-2.5}">
+        <include name="org/krysalis/**"/>
+      </fileset>
+      <fileset dir="${build.dest.xgc}">
+        <include name="org/krysalis/**"/>
+      </fileset>
+    </jar>
+    <jar jarfile="${build.dir}/${name}-fop-2.5-ext-complete.jar">
+      <manifest>
+        <attribute name="Main-Class" value="${main.class}"/>
+        <attribute name="Implementation-Title" value="${Name}"/>
+        <attribute name="Implementation-Version" value="${version}"/>
+        <attribute name="Implementation-Vendor" value="${impl.vendor}"/>
+        <attribute name="Implementation-URL" value="${impl.url}"/>
+        <attribute name="Build-Id" value="${ts} (${user.name} [${os.name} ${os.version} ${os.arch}, Java ${java.runtime.version}])"/>
+      </manifest>
+      <metainf dir="${basedir}" includes="LICENSE,NOTICE"/>
+      <metainf dir="${fop-2.5.ext.dir}/resources">
+        <include name="**"/>
+      </metainf>
+      <metainf dir="${xgc.ext.dir}/resources">
+        <include name="**"/>
+      </metainf>
+      <fileset dir="${build.dest.fop-2.5}">
+        <include name="org/krysalis/**"/>
+      </fileset>
+      <fileset dir="${build.dest.xgc}">
+        <include name="org/krysalis/**"/>
+      </fileset>
+      <fileset dir="${build.dest}">
+        <include name="org/krysalis/**"/>
+      </fileset>
+    </jar>
+    <jar jarfile="${resource-jar.dir}/${name}-fop-2.5-ext-resources.jar">
+      <manifest>
+        <attribute name="Implementation-Title" value="${Name}"/>
+        <attribute name="Implementation-Version" value="${version}"/>
+        <attribute name="Implementation-Vendor" value="${impl.vendor}"/>
+        <attribute name="Implementation-URL" value="${impl.url}"/>
+        <attribute name="Build-Id" value="${ts} (${user.name} [${os.name} ${os.version} ${os.arch}, Java ${java.runtime.version}])"/>
+      </manifest>
+      <metainf dir="${basedir}" includes="LICENSE,NOTICE"/>
+      <metainf dir="${fop-2.5.ext.dir}/resources">
+        <include name="**"/>
+      </metainf>
+    </jar>
+  </target>
   
   <target name="package-xgc" depends="compile-all">
     <echo message="Creating the jar file ${build.dir}/${name}-xgc.jar"/>
@@ -520,7 +609,7 @@
     </jar>
   </target>
   
-  <target name="package" depends="package-base, package-fop-0.20.5, package-fop-trunk, package-xgc, osgi, package.NET" description="Creates the Barcode JAR packages"/>
+  <target name="package" depends="package-base, package-fop-0.20.5, package-fop-trunk, package-fop-2.5, package-xgc, osgi, package.NET" description="Creates the Barcode JAR packages"/>
   
   <!-- =================================================================== -->
   <!-- Creates .NET binaries using IKVM                                    -->
